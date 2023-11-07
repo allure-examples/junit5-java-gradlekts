@@ -1,63 +1,55 @@
-import io.qameta.allure.gradle.AllureExtension
-
 plugins {
     java
-    maven
-    id("io.qameta.allure") version "2.8.1"
 }
 
-group "io.qameta.allure.examples"
-version 1.3
+tasks.withType(Wrapper::class) {
+    gradleVersion = "8.4"
+}
 
-val allureVersion = "2.13.6"
-val junit5Version = "5.6.2"
+group = "com.example.junit5"
+version = "1.0-SNAPSHOT"
+
+val allureVersion = "2.24.0"
+val aspectJVersion = "1.9.20.1"
+val kotlinVersion = "1.9.20"
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
 
 tasks.withType(JavaCompile::class) {
-    sourceCompatibility = "${JavaVersion.VERSION_1_8}"
-    targetCompatibility = "${JavaVersion.VERSION_1_8}"
+    options.encoding = "UTF-8"
+    options.compilerArgs.add("-parameters")
 }
 
-tasks {
-    compileJava {
-        options.encoding = "UTF-8"
-    }
-    compileTestJava {
-        options.encoding = "UTF-8"
-    }
+val agent: Configuration by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = true
 }
 
-configure<AllureExtension> {
-    autoconfigure = true
-    aspectjweaver = true
-    version = allureVersion
-
-    clean = true
-
-    useJUnit5 {
-        version = allureVersion
-    }
-}
-
-tasks.withType(Test::class) {
+tasks.test {
     ignoreFailures = true
-    useJUnitPlatform {
+    useJUnitPlatform()
+    jvmArgs = listOf(
+        "-javaagent:${agent.singleFile}"
+    )
+}
 
-    }
+dependencies {
+    agent("org.aspectj:aspectjweaver:$aspectJVersion")
+    
+    testImplementation(platform("io.qameta.allure:allure-bom:$allureVersion"))
+    testImplementation("io.qameta.allure:allure-junit5")
 
-    systemProperty("junit.jupiter.execution.parallel.enabled", "true")
-    systemProperty("junit.jupiter.execution.parallel.config.strategy", "dynamic")
-    systemProperty("junit.jupiter.extensions.autodetection.enabled", "true")
+    testImplementation(platform("org.junit:junit-bom:5.10.1"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+
+    testImplementation("org.slf4j:slf4j-simple:2.0.9")
 }
 
 repositories {
     mavenCentral()
-    mavenLocal()
-}
-
-dependencies {
-    testImplementation("io.qameta.allure:allure-java-commons:$allureVersion")
-
-    testImplementation("org.junit.jupiter:junit-jupiter-api:$junit5Version")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:$junit5Version")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:$junit5Version")
 }
